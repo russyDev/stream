@@ -13,7 +13,7 @@ app.get("/", (req, res) => {
 <html>
 <head>
     <title>WebRTC Stream</title>
-    <script src="https://ossrs.net/releases/srs.js"></script>
+    <script src="./assets/srs.sdk.js"></script>
 </head>
 <body>
     <h1>WebRTC Stream</h1>
