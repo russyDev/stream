@@ -25,15 +25,16 @@ function startTranscoding() {
 
     ffmpeg(RTMP_URL)
         .addOptions([
-            "-preset ultrafast", // Найшвидший пресет
-            "-g 50", // Частота ключових кадрів (25 FPS * 2 сек.)
-            "-hls_time 2", // Тривалість сегментів
-            "-hls_list_size 3", // Максимум 3 сегменти в плейлисті
+            "-preset ultrafast", // Швидке кодування
+            "-g 50", // Частота ключових кадрів
+            "-hls_time 1", // Зменшена тривалість сегмента
+            "-hls_list_size 2", // Менший розмір плейлиста
             "-hls_flags delete_segments+split_by_time", // Видалення старих сегментів
-            "-sc_threshold 0", // Вимкнення створення зайвих ключових кадрів
+            "-threads auto", // Використання потоків CPU
         ])
         .output(path.join(HLS_DIR, "stream.m3u8"))
         .on("start", () => console.log("FFmpeg process started"))
+        .on("stderr", (stderrLine) => console.log("FFmpeg stderr:", stderrLine))
         .on("error", (err) => console.error("FFmpeg error:", err))
         .on("end", () => console.log("FFmpeg process ended"))
         .run();
@@ -61,9 +62,10 @@ app.get("/", (req, res) => {
 
                 if (Hls.isSupported()) {
                     const hls = new Hls({
-                        debug: true,
-                        liveSyncDuration: 2, // Час синхронізації
-                        liveMaxLatencyDuration: 4, // Максимальна затримка
+                        debug: false,
+                        liveSyncDuration: 1,
+                        liveMaxLatencyDuration: 3,
+                        enableWorker: true,
                     });
                     hls.loadSource(videoSrc);
                     hls.attachMedia(video);
