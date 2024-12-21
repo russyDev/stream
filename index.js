@@ -25,11 +25,12 @@ function startTranscoding() {
 
     ffmpeg(RTMP_URL)
         .addOptions([
-            "-preset ultrafast",
-            "-g 50",
-            "-sc_threshold 0",
-            "-hls_time 4", // Збільшена тривалість сегмента
-            "-hls_list_size 10", // Збільшений список плейлиста
+            "-preset ultrafast", // Найшвидший пресет
+            "-g 50", // Частота ключових кадрів (25 FPS * 2 сек.)
+            "-hls_time 2", // Тривалість сегментів
+            "-hls_list_size 3", // Максимум 3 сегменти в плейлисті
+            "-hls_flags delete_segments+split_by_time", // Видалення старих сегментів
+            "-sc_threshold 0", // Вимкнення створення зайвих ключових кадрів
         ])
         .output(path.join(HLS_DIR, "stream.m3u8"))
         .on("start", () => console.log("FFmpeg process started"))
@@ -59,14 +60,18 @@ app.get("/", (req, res) => {
                 const videoSrc = '/hls/stream.m3u8';
 
                 if (Hls.isSupported()) {
-                    const hls = new Hls({ debug: true }); // Увімкнено налагодження
+                    const hls = new Hls({
+                        debug: true,
+                        liveSyncDuration: 2, // Час синхронізації
+                        liveMaxLatencyDuration: 4, // Максимальна затримка
+                    });
                     hls.loadSource(videoSrc);
                     hls.attachMedia(video);
                     hls.on(Hls.Events.MANIFEST_PARSED, () => {
                         video.play();
                     });
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                    // Для Safari (нативна підтримка)
+                    // Для Safari (нативна підтримка HLS)
                     video.src = videoSrc;
                     video.addEventListener('loadedmetadata', () => {
                         video.play();
