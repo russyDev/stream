@@ -7,48 +7,61 @@ const PORT = 3003;
 
 // Serve a basic HTML page for testing
 app.get("/", (req, res) => {
-    res.send(`
-dddd
-    <html>
-      <body>
-        <h1>Stream to OBS</h1>
-        <video id="video" autoplay muted></video>
-        <script>
-          navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then(stream => {
-              console.log("Accessed media devices successfully.");
-              const video = document.getElementById('video');
-              video.srcObject = stream;
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream to OBS</title>
+</head>
+<body>
+    <h1>Stream to OBS</h1>
+    <video id="video" autoplay muted></video>
+    <script>
+        // Check if getUserMedia is supported
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            console.error("Error: getUserMedia is not supported in this browser.");
+            alert("Your browser does not support media device access. Please use the latest version of Chrome, Firefox, Edge, or Safari.");
+        } else {
+            // Try accessing media devices
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then((stream) => {
+                    console.log("Media devices accessed successfully.");
+                    const video = document.getElementById('video');
+                    video.srcObject = stream; // Display local video stream
+                    video.onloadedmetadata = () => {
+                        console.log("Video metadata loaded. Playing video...");
+                        video.play();
+                    };
 
-              const ws = new WebSocket('ws://localhost:3000'); // Connect to WebSocket server
+                    // Establish WebSocket connection
+                    const ws = new WebSocket('ws://localhost:3000');
+                    ws.onopen = () => console.log("WebSocket connection opened.");
+                    ws.onclose = () => console.log("WebSocket connection closed.");
+                    ws.onerror = (error) => console.error("WebSocket error:", error);
 
-              ws.onopen = () => console.log("WebSocket connection opened");
-              ws.onclose = () => console.log("WebSocket connection closed");
-              ws.onerror = (error) => console.error("WebSocket error:", error);
+                    // Stream video data to WebSocket server
+                    const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
+                    mediaRecorder.ondataavailable = (event) => {
+                        console.log("MediaRecorder data available. Chunk size:", event.data.size);
+                        if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
+                            console.log("Sending chunk to WebSocket server...");
+                            ws.send(event.data);
+                        }
+                    };
+                    mediaRecorder.onerror = (error) => console.error("MediaRecorder error:", error);
+                    mediaRecorder.start(1000); // Send data every second
+                    console.log("MediaRecorder started.");
+                })
+                .catch((error) => {
+                    console.error("Error accessing media devices:", error);
+                    alert("Could not access your camera or microphone. Please check your permissions and try again.");
+                });
+        }
+    </script>
+</body>
+</html>
 
-              const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm; codecs=vp9' });
-
-              mediaRecorder.ondataavailable = event => {
-                console.log("MediaRecorder chunk generated. Size:", event.data.size);
-                if (event.data.size > 0 && ws.readyState === WebSocket.OPEN) {
-                  console.log("Sending chunk to WebSocket server...");
-                  ws.send(event.data); // Send video data to WebSocket server
-                }
-              };
-
-              mediaRecorder.onerror = (error) => {
-                console.error("MediaRecorder error:", error);
-              };
-
-              mediaRecorder.start(1000); // Send data every 1 second
-              console.log("MediaRecorder started recording.");
-            })
-            .catch(error => {
-              console.error("Error accessing media devices:", error);
-            });
-        </script>
-      </body>
-    </html>
   `);
 });
 
