@@ -3,7 +3,7 @@ const WebSocket = require("ws");
 const { spawn } = require("child_process");
 
 const app = express();
-const PORT = 3000;
+const PORT = 3003;
 
 // Serve a basic HTML page for testing
 app.get("/", (req, res) => {
