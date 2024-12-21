@@ -25,12 +25,11 @@ function startTranscoding() {
 
     ffmpeg(RTMP_URL)
         .addOptions([
-            "-preset veryfast",
+            "-preset ultrafast",
             "-g 50",
             "-sc_threshold 0",
-            "-hls_time 2",
-            "-hls_list_size 5",
-            "-hls_flags delete_segments",
+            "-hls_time 4", // Збільшена тривалість сегмента
+            "-hls_list_size 10", // Збільшений список плейлиста
         ])
         .output(path.join(HLS_DIR, "stream.m3u8"))
         .on("start", () => console.log("FFmpeg process started"))
@@ -60,27 +59,26 @@ app.get("/", (req, res) => {
                 const videoSrc = '/hls/stream.m3u8';
 
                 if (Hls.isSupported()) {
-                    const hls = new Hls();
+                    const hls = new Hls({ debug: true }); // Увімкнено налагодження
                     hls.loadSource(videoSrc);
                     hls.attachMedia(video);
                     hls.on(Hls.Events.MANIFEST_PARSED, () => {
                         video.play();
                     });
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-                    // For Safari (native support)
+                    // Для Safari (нативна підтримка)
                     video.src = videoSrc;
                     video.addEventListener('loadedmetadata', () => {
                         video.play();
                     });
                 } else {
-                    alert('Your browser does not support HLS playback.');
+                    alert('Ваш браузер не підтримує відтворення HLS.');
                 }
             </script>
         </body>
         </html>
     `);
 });
-
 
 // Start the server
 app.listen(PORT, () => {
