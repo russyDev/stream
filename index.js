@@ -1,7 +1,11 @@
 const express = require("express");
+const path = require("path");
 
 const app = express();
 const PORT = 3000;
+
+// Налаштування статичних файлів
+app.use("/assets", express.static(path.join(__dirname, "assets")));
 
 // RTMP Stream URL
 const WEBRTC_URL = "webrtc://185.69.152.124:1935/live/stream";
@@ -13,18 +17,22 @@ app.get("/", (req, res) => {
 <html>
 <head>
     <title>WebRTC Stream</title>
-    <script src="./assets/srs.sdk.js"></script>
+    <script src="/assets/srs.sdk.js"></script>
 </head>
 <body>
     <h1>WebRTC Stream</h1>
     <video id="webrtcVideo" autoplay controls style="width: 100%;"></video>
     <script>
+        const WEBRTC_URL = "webrtc://185.69.152.124:1935/live/stream"; // Передаємо як рядок
         const player = new SrsRtcPlayerAsync();
+
         player.play({
-            url: WEBRTC_URL, // URL вашого WebRTC потоку
+            url: WEBRTC_URL // Використовуємо правильний тип (рядок)
         }).then(() => {
             console.log("Playing WebRTC stream!");
-        }).catch(console.error);
+        }).catch(error => {
+            console.error("Error playing WebRTC stream:", error);
+        });
     </script>
 </body>
 </html>
